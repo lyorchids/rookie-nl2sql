@@ -19,12 +19,24 @@ class NL2SQLState(TypedDict):
     - answer (M9)
     - trace (M11)
     """
-    # User input
+    # 用户输入
     question: str
 
-    # Metadata
+    # 元数据
     timestamp: Optional[str]
     session_id: Optional[str]
 
-    # Intent parsing (M0 baseline)
+    # 意图解析
     intent: Optional[Dict[str, Any]]
+
+    #用户信息
+    user_id: Optional[str]
+
+    #对话历史
+    dialog_history: Optional[List[Dict]]
+
+    #候选
+    candidate_sql: Optional[str]
+
+    #SQL执行结果
+    execution_result: Optional[Dict]

@@ -8,6 +8,8 @@ from langgraph.graph import StateGraph, END
 from datetime import datetime
 import uuid
 import json
+import time
+from functools import wraps
 
 # Set UTF-8 encoding for Windows console
 if sys.platform == 'win32':
@@ -27,25 +29,45 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
     M0: Simple intent extraction with metadata.
     """
     question = state.get("question", "")
+    question_lower = question.lower()
+
+    if any(kw in question_lower for kw in ["统计", "多少", "总计", "count", "sum"]):
+        question_type = "aggregation"
+    elif any(kw in question_lower for kw in ["排名", "top", "前", "最"]):
+        question_type = "ranking"
+    elif any(kw in question_lower for kw in ["查询", "显示", "show", "select"]):
+        question_type = "select"
+    else:
+        question_type = "unknown"
+
+    # 2. 提取数量词
+    import re
+    numbers = re.findall(r'\d+', question)
+    limit = int(numbers[0]) if numbers else None
+
+    # 3. 检测时间范围
+    has_time = any(kw in question_lower
+                    for kw in ["今天", "本月", "本年", "yesterday", "last"])
 
     # Simple intent parsing - will be enhanced in future modules
     intent = {
         "type": "query",
         "question_length": len(question),
+        "has_time_range": has_time,
         "has_keywords": any(kw in question.lower() for kw in ["查询", "多少", "什么", "哪些", "统计", "show", "what", "how many"]),
         "parsed_at": datetime.now().isoformat()
     }
 
-    print(f"\n=== Parse Intent Node ===")
-    print(f"Question: {question}")
-    print(f"Intent: {json.dumps(intent, indent=2, ensure_ascii=False)}")
+    print(f"\n=== Enhanced Intent ===")
+    print(f"Type: {question_type}")
+    print(f"Limit: {limit}")
+    print(f"Has Time Range: {has_time}")
 
     return {
         **state,
         "intent": intent,
         "timestamp": datetime.now().isoformat()
     }
-
 
 def echo_node(state: NL2SQLState) -> NL2SQLState:
     """
@@ -61,6 +83,45 @@ def echo_node(state: NL2SQLState) -> NL2SQLState:
 
     return state
 
+def log_node(state: NL2SQLState) -> NL2SQLState:
+    """
+    记录查询日志到文件
+    :param state:
+    :return:
+    """
+    import json
+    from pathlib import Path
+
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / "query_log.jsonl"
+
+    log_entry = {
+        "session_id": state.get("session_id"),
+        "question": state.get("question"),
+        "intent": state.get("intent"),
+        "timestamp": state.get("timestamp")
+    }
+
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+
+    print(f"✓ Log written to {log_file}")
+
+    return state
+
+
+def monitor_performance(func):
+    """性能监控装饰器"""
+    @wraps(func)
+    def wrapper(state):
+        start = time.time()
+        result = func(state)
+        elapsed = time.time() - start
+        print(f"⏱️  {func.__name__} took {elapsed:.3f}s")
+        return result
+    return wrapper
+
 
 def build_graph() -> StateGraph:
     """
@@ -72,11 +133,13 @@ def build_graph() -> StateGraph:
 
     # Add nodes
     workflow.add_node("parse_intent", parse_intent_node)
+    workflow.add_node("log", log_node)
     workflow.add_node("echo", echo_node)
 
     # Define edges
     workflow.set_entry_point("parse_intent")
-    workflow.add_edge("parse_intent", "echo")
+    workflow.add_edge("parse_intent", "log")
+    workflow.add_edge("log", "echo")
     workflow.add_edge("echo", END)
 
     # Compile graph
@@ -118,6 +181,7 @@ def run_query(question: str, session_id: str = None) -> NL2SQLState:
     result = graph.invoke(initial_state)
 
     return result
+
 
 
 if __name__ == "__main__":

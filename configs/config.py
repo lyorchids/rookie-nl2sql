@@ -152,6 +152,11 @@ class Config:
             "env_config": self.env_config
         }
 
+    def reload(self):
+        """重新加载配置"""
+        self._load_yaml_config()
+        self._load_env_vars()
+        print("✓ Configuration reloaded")
 
 # Global config instance
 config = Config()

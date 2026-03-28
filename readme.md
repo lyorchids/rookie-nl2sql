@@ -37,7 +37,6 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # 编辑 .env 文件,选择一个 LLM 提供商并填入 API Key
-# 注意: M0 阶段不需要 API Key,可以留空。M1 开始需要配置。
 ```
 **支持的 LLM 提供商** (推荐国内用户使用 DeepSeek 或 Qwen):
 - **DeepSeek** (推荐): 性价比高,国内访问快 - [获取 API Key](https://platform.deepseek.com/)

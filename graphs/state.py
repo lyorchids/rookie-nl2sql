@@ -21,22 +21,30 @@ class NL2SQLState(TypedDict):
     """
     # 用户输入
     question: str
+    # 意图解析
+    intent: Optional[Dict[str, Any]]
 
     # 元数据
     timestamp: Optional[str]
     session_id: Optional[str]
-
-    # 意图解析
-    intent: Optional[Dict[str, Any]]
-
     #用户信息
     user_id: Optional[str]
-
     #对话历史
     dialog_history: Optional[List[Dict]]
 
-    #候选
+    #候选SQL
     candidate_sql: Optional[str]
+    sql_generated_at: Optional[str]
+    validation: Dict
 
     #SQL执行结果
     execution_result: Optional[Dict]
+    # 最终输出
+    answer: str
+
+    # Schema与知识
+    schema: Dict
+    rag_evidence: List
+
+
+

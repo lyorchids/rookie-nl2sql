@@ -1,6 +1,6 @@
 """
 Base LangGraph for NL2SQL system.
-M0: Minimal runnable implementation with input/output nodes.
+Minimal runnable implementation with input/output nodes.
 """
 import sys
 import os
@@ -19,8 +19,12 @@ if sys.platform == 'win32':
 
 try:
     from graphs.state import NL2SQLState
+    from graphs.nodes.generate_sql import generate_sql_node
 except ImportError:
     from state import NL2SQLState
+    from nodes.generate_sql import generate_sql_node
+
+
 
 
 def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
@@ -79,6 +83,8 @@ def echo_node(state: NL2SQLState) -> NL2SQLState:
     print(f"Question: {state.get('question')}")
     print(f"Intent: {json.dumps(state.get('intent', {}), indent=2, ensure_ascii=False)}")
     print(f"Timestamp: {state.get('timestamp')}")
+    print(f"candidate_sql: {state.get('candidate_sql')}")
+    print(f"sql_generated_at: {state.get('sql_generated_at')}")
     print(f"\n{'='*50}\n")
 
     return state
@@ -100,7 +106,10 @@ def log_node(state: NL2SQLState) -> NL2SQLState:
         "session_id": state.get("session_id"),
         "question": state.get("question"),
         "intent": state.get("intent"),
-        "timestamp": state.get("timestamp")
+        "timestamp": state.get("timestamp"),
+        "candidate_sql": state.get('candidate_sql'),
+        "sql_generated_at": state.get("sql_generated_at"),
+
     }
 
     with open(log_file, "a", encoding="utf-8") as f:
@@ -109,7 +118,6 @@ def log_node(state: NL2SQLState) -> NL2SQLState:
     print(f"✓ Log written to {log_file}")
 
     return state
-
 
 def monitor_performance(func):
     """性能监控装饰器"""
@@ -122,7 +130,6 @@ def monitor_performance(func):
         return result
     return wrapper
 
-
 def build_graph() -> StateGraph:
     """
     Build the base NL2SQL graph.
@@ -133,12 +140,15 @@ def build_graph() -> StateGraph:
 
     # Add nodes
     workflow.add_node("parse_intent", parse_intent_node)
+    workflow.add_node("generate_sql", generate_sql_node)
+
     workflow.add_node("log", log_node)
     workflow.add_node("echo", echo_node)
 
     # Define edges
     workflow.set_entry_point("parse_intent")
-    workflow.add_edge("parse_intent", "log")
+    workflow.add_edge("parse_intent", "generate_sql")
+    workflow.add_edge("generate_sql", "log")
     workflow.add_edge("log", "echo")
     workflow.add_edge("echo", END)
 
@@ -147,7 +157,7 @@ def build_graph() -> StateGraph:
 
     return graph
 
-
+@monitor_performance
 def run_query(question: str, session_id: str = None) -> NL2SQLState:
     """
     Run a single query through the graph.

@@ -39,6 +39,9 @@ class NL2SQLState(TypedDict):
 
     #SQL执行结果
     execution_result: Optional[Dict]
+    executed_at: Optional[str]
+    execute_sql: Optional[str]
+
     # 最终输出
     answer: str
 

@@ -20,12 +20,10 @@ if sys.platform == 'win32':
 try:
     from graphs.state import NL2SQLState
     from graphs.nodes.generate_sql import generate_sql_node
+    from graphs.nodes.execute_sql import execute_sql_node
 except ImportError:
     from state import NL2SQLState
     from nodes.generate_sql import generate_sql_node
-
-
-
 
 def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
     """
@@ -85,8 +83,9 @@ def echo_node(state: NL2SQLState) -> NL2SQLState:
     print(f"Timestamp: {state.get('timestamp')}")
     print(f"candidate_sql: {state.get('candidate_sql')}")
     print(f"sql_generated_at: {state.get('sql_generated_at')}")
+    print(f"execution_result: {state.get('execution_result')}")
+    print(f"executed_at: {state.get('executed_at')}")
     print(f"\n{'='*50}\n")
-
     return state
 
 def log_node(state: NL2SQLState) -> NL2SQLState:
@@ -141,15 +140,16 @@ def build_graph() -> StateGraph:
     # Add nodes
     workflow.add_node("parse_intent", parse_intent_node)
     workflow.add_node("generate_sql", generate_sql_node)
-
-    workflow.add_node("log", log_node)
+    workflow.add_node("execute_sql", execute_sql_node)
+    #workflow.add_node("log", log_node)
     workflow.add_node("echo", echo_node)
 
     # Define edges
     workflow.set_entry_point("parse_intent")
     workflow.add_edge("parse_intent", "generate_sql")
-    workflow.add_edge("generate_sql", "log")
-    workflow.add_edge("log", "echo")
+    workflow.add_edge("generate_sql", "execute_sql")
+    workflow.add_edge("execute_sql", "echo")
+    #workflow.add_edge("log", "echo")
     workflow.add_edge("echo", END)
 
     # Compile graph

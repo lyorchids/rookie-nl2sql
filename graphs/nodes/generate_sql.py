@@ -6,11 +6,12 @@ import time
 from typing import Dict, Any
 from langchain_core.prompts import PromptTemplate
 
+
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-
+from tools.db import db_client
 from graphs.state import NL2SQLState
 from tools.llm_client import llm_client
 
@@ -51,9 +52,43 @@ def extract_sql_from_response(response: str) -> str:
 
     return sql
 
+
+def get_database_schema_string() -> str:
+    """
+    获取数据库中所有表名和表对应的字段字符串
+
+    返回格式：
+    - 表名1 (字段1, 字段2, ...)
+    - 表名2 (字段1, 字段2, ...)
+
+    Returns:
+        str: 格式化的表结构字符串
+    """
+    schema_lines = []
+
+    # 获取所有表名
+    tables = db_client.get_table_names()
+
+    for table_name in tables:
+        # 获取表结构
+        table_schema = db_client.get_table_schema(table_name)
+        columns = table_schema.get("columns", [])
+
+        # 提取字段名
+        column_names = [col["name"] for col in columns]
+
+        # 格式化字符串
+        columns_str = ", ".join(column_names)
+        schema_lines.append(f"- {table_name} ({columns_str})")
+
+    return "\n".join(schema_lines)
+
+
 def generate_sql_node(state: NL2SQLState) -> NL2SQLState:
     #1.得到问题
     question = state.get("question","")
+
+    print(f"\n=== Execute SQL Node ===")
 
     print(f"\n=== Generate SQL Node ===")
     print(f"Question: {question}")
@@ -61,12 +96,14 @@ def generate_sql_node(state: NL2SQLState) -> NL2SQLState:
     #2.得到提示词模板
     prompt_template = load_prompt_template("nl2sqlme")
 
-    schema_placeholder = """
-       示例表结构 :
-       - customers (customer_id, customer_name, city, country)
-       - orders (order_id, customer_id, amount, order_date)
-       - products (product_id, product_name, price, category)
-       """
+    schema_placeholder = get_database_schema_string()
+
+    # schema_placeholder = """
+    #    示例表结构 :
+    #    - customers (customer_id, customer_name, city, country)
+    #    - orders (order_id, customer_id, amount, order_date)
+    #    - products (product_id, product_name, price, category)
+    #    """
 
     prompt = prompt_template.format(
         schema=schema_placeholder.strip(),
@@ -124,7 +161,7 @@ if __name__ == "__main__":
             "timestamp": None,
             "intent": None,
             "candidate_sql": None,
-            "sql_generated_at": None
+            "sql_generated_at": None,
         }
 
         result = generate_sql_node(test_state)
@@ -135,3 +172,4 @@ if __name__ == "__main__":
     print(f"\n{'='*60}")
     print("Test Complete!")
     print(f"{'='*60}")
+

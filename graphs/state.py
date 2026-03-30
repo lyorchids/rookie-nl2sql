@@ -32,12 +32,12 @@ class NL2SQLState(TypedDict):
     #对话历史
     dialog_history: Optional[List[Dict]]
 
-    #候选SQL
+    # 候选SQL
     candidate_sql: Optional[str]
     sql_generated_at: Optional[str]
     validation: Dict
 
-    #SQL执行结果
+    # SQL执行结果
     execution_result: Optional[Dict]
     executed_at: Optional[str]
     execute_sql: Optional[str]

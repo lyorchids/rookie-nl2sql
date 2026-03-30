@@ -21,9 +21,12 @@ try:
     from graphs.state import NL2SQLState
     from graphs.nodes.generate_sql import generate_sql_node
     from graphs.nodes.execute_sql import execute_sql_node
+    from graphs.nodes.select_tables import select_tables_node
 except ImportError:
     from state import NL2SQLState
     from nodes.generate_sql import generate_sql_node
+    from nodes.execute_sql import execute_sql_node
+    from nodes.select_tables import select_tables_node
 
 def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
     """
@@ -132,13 +135,14 @@ def monitor_performance(func):
 def build_graph() -> StateGraph:
     """
     Build the base NL2SQL graph.
-    M0: Minimal graph with parse_intent -> echo
+    M0: Minimal graph with parse_intent -> select_tables -> generate_sql -> echo
     """
     # Create graph
     workflow = StateGraph(NL2SQLState)
 
     # Add nodes
     workflow.add_node("parse_intent", parse_intent_node)
+    workflow.add_node("select_tables", select_tables_node)
     workflow.add_node("generate_sql", generate_sql_node)
     workflow.add_node("execute_sql", execute_sql_node)
     #workflow.add_node("log", log_node)
@@ -146,7 +150,8 @@ def build_graph() -> StateGraph:
 
     # Define edges
     workflow.set_entry_point("parse_intent")
-    workflow.add_edge("parse_intent", "generate_sql")
+    workflow.add_edge("parse_intent", "select_tables")
+    workflow.add_edge("select_tables", "generate_sql")
     workflow.add_edge("generate_sql", "execute_sql")
     workflow.add_edge("execute_sql", "echo")
     #workflow.add_edge("log", "echo")
@@ -201,9 +206,7 @@ if __name__ == "__main__":
     """
     # Test cases
     test_questions = [
-        "查询所有用户的订单数量",
-        "What are the top 10 customers by revenue?",
-        "统计每个月的销售额"
+        "分析美国市场各音乐类型的销售占比，找出最受欢迎的3种音乐类型",
     ]
 
     print("\n" + "="*70)

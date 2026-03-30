@@ -1,0 +1,120 @@
+======================================================================
+数据库Schema（含描述增强）
+======================================================================
+
+1. Album (Album表)
+--------------------------------------------------
+  • AlbumId: INTEGER (主键, 非空) - 专辑唯一标识符
+  • Title: NVARCHAR(160) (非空) - 标题/名称
+  • ArtistId: INTEGER (非空) - 艺术家唯一标识符
+
+2. Artist (Artist表)
+--------------------------------------------------
+  • ArtistId: INTEGER (主键, 非空) - 艺术家唯一标识符
+  • Name: NVARCHAR(120) - 名称
+
+3. Customer (客户信息表，存储客户的基本资料和联系信息)
+--------------------------------------------------
+  • CustomerId: INTEGER (主键, 非空) - 客户唯一标识符
+  • FirstName: NVARCHAR(40) (非空) - 名字
+  • LastName: NVARCHAR(20) (非空) - 姓氏
+  • Company: NVARCHAR(80) - Company
+  • Address: NVARCHAR(70) - 地址
+  • City: NVARCHAR(40) - 城市
+  • State: NVARCHAR(40) - 州/省
+  • Country: NVARCHAR(40) - 国家
+  • PostalCode: NVARCHAR(10) - 邮政编码
+  • Phone: NVARCHAR(24) - 电话号码
+  • Fax: NVARCHAR(24) - 传真号码
+  • Email: NVARCHAR(60) (非空) - 电子邮箱地址
+  • SupportRepId: INTEGER - SupportRepId
+
+4. Employee (员工信息表，存储员工的基本信息和工作详情)
+--------------------------------------------------
+  • EmployeeId: INTEGER (主键, 非空) - 员工唯一标识符
+  • LastName: NVARCHAR(20) (非空) - 姓氏
+  • FirstName: NVARCHAR(20) (非空) - 名字
+  • Title: NVARCHAR(30) - 标题/名称
+  • ReportsTo: INTEGER - 上级领导ID
+  • BirthDate: DATETIME - 出生日期
+  • HireDate: DATETIME - 雇佣日期
+  • Address: NVARCHAR(70) - 地址
+  • City: NVARCHAR(40) - 城市
+  • State: NVARCHAR(40) - 州/省
+  • Country: NVARCHAR(40) - 国家
+  • PostalCode: NVARCHAR(10) - 邮政编码
+  • Phone: NVARCHAR(24) - 电话号码
+  • Fax: NVARCHAR(24) - 传真号码
+  • Email: NVARCHAR(60) - 电子邮箱地址
+
+5. Genre (Genre表)
+--------------------------------------------------
+  • GenreId: INTEGER (主键, 非空) - 流派唯一标识符
+  • Name: NVARCHAR(120) - 名称
+
+6. Invoice (发票表，记录交易发票信息)
+--------------------------------------------------
+  • InvoiceId: INTEGER (主键, 非空) - 发票唯一标识符
+  • CustomerId: INTEGER (非空) - 客户唯一标识符
+  • InvoiceDate: DATETIME (非空) - 发票日期
+  • BillingAddress: NVARCHAR(70) - BillingAddress
+  • BillingCity: NVARCHAR(40) - BillingCity
+  • BillingState: NVARCHAR(40) - BillingState
+  • BillingCountry: NVARCHAR(40) - 数量
+  • BillingPostalCode: NVARCHAR(10) - BillingPostalCode
+  • Total: NUMERIC(10,2) (非空) - 总金额
+
+7. InvoiceLine (与发票相关的数据表)
+--------------------------------------------------
+  • InvoiceLineId: INTEGER (主键, 非空) - InvoiceLineId
+  • InvoiceId: INTEGER (非空) - 发票唯一标识符
+  • TrackId: INTEGER (非空) - 音轨唯一标识符
+  • UnitPrice: NUMERIC(10,2) (非空) - 单价
+  • Quantity: INTEGER (非空) - Quantity
+
+8. MediaType (MediaType表)
+--------------------------------------------------
+  • MediaTypeId: INTEGER (主键, 非空) - 媒体类型唯一标识符
+  • Name: NVARCHAR(120) - 名称
+
+9. Playlist (Playlist表)
+--------------------------------------------------
+  • PlaylistId: INTEGER (主键, 非空) - 播放列表唯一标识符
+  • Name: NVARCHAR(120) - 名称
+
+10. PlaylistTrack (与音轨相关的数据表)
+--------------------------------------------------
+  • PlaylistId: INTEGER (主键, 非空) - 播放列表唯一标识符
+  • TrackId: INTEGER (主键, 非空) - 音轨唯一标识符
+
+11. Track (与音轨相关的数据表)
+--------------------------------------------------
+  • TrackId: INTEGER (主键, 非空) - 音轨唯一标识符
+  • Name: NVARCHAR(200) (非空) - 名称
+  • AlbumId: INTEGER - 专辑唯一标识符
+  • MediaTypeId: INTEGER (非空) - 媒体类型唯一标识符
+  • GenreId: INTEGER - 流派唯一标识符
+  • Composer: NVARCHAR(220) - 作曲家
+  • Milliseconds: INTEGER (非空) - 时长（毫秒）
+  • Bytes: INTEGER - 文件大小（字节）
+  • UnitPrice: NUMERIC(10,2) (非空) - 单价
+
+======================================================================
+表关系说明
+======================================================================
+• Album.ArtistId → Artist.ArtistId
+• Customer.SupportRepId → Employee.EmployeeId
+• Employee.ReportsTo → Employee.EmployeeId
+• Invoice.CustomerId → Customer.CustomerId
+• InvoiceLine.TrackId → Track.TrackId
+• InvoiceLine.InvoiceId → Invoice.InvoiceId
+• PlaylistTrack.TrackId → Track.TrackId
+• PlaylistTrack.PlaylistId → Playlist.PlaylistId
+• Track.MediaTypeId → MediaType.MediaTypeId
+• Track.GenreId → Genre.GenreId
+• Track.AlbumId → Album.AlbumId
+
+总结:
+- 表数量: 11
+- 有外键关系的表: 7
+- 字段模式类型: 2

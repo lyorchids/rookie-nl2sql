@@ -3,6 +3,7 @@ Database tools for NL2SQL system.
 M2: Implements function call-based database query execution.
 """
 import sys
+import json
 import sqlite3
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -207,6 +208,49 @@ class DatabaseClient:
         """
         tables = self.get_table_names()
         return [self.get_table_schema(table) for table in tables]
+
+    def get_table_relationships(self, table_name: str) -> str:
+        """
+        获取指定表的外键关系信息
+
+        Args:
+            table_name: 表名
+
+        Returns:
+            JSON字符串，包含外键关系列表
+        """
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            # 获取外键信息
+            cursor.execute(f"PRAGMA foreign_key_list({table_name})")
+            foreign_keys = cursor.fetchall()
+
+            relationships = []
+            for row in foreign_keys:
+                rel = {
+                    "id": row[0],
+                    "seq": row[1],
+                    "references_table": row[2],
+                    "column": row[3],  # 当前表中的外键列
+                    "references_column": row[4],  # 引用表中的列
+                    "on_update": row[5],
+                    "on_delete": row[6]
+                }
+                relationships.append(rel)
+
+            return json.dumps({
+                "table": table_name,
+                "foreign_keys": relationships
+            }, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+        finally:
+            if conn:
+                conn.close()  # 确保连接最终被关闭
 
     def test_connection(self) -> bool:
         """

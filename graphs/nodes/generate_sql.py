@@ -96,8 +96,8 @@ def generate_sql_node(state: NL2SQLState) -> NL2SQLState:
     #2.得到提示词模板
     prompt_template = load_prompt_template("nl2sqlme")
 
-    schema_placeholder = get_database_schema_string()
-
+    #schema_placeholder = get_database_schema_string()
+    schema = state["schema"]
     # schema_placeholder = """
     #    示例表结构 :
     #    - customers (customer_id, customer_name, city, country)
@@ -106,7 +106,7 @@ def generate_sql_node(state: NL2SQLState) -> NL2SQLState:
     #    """
 
     prompt = prompt_template.format(
-        schema=schema_placeholder.strip(),
+        schema=schema.strip(),
         question=question
     )
 
@@ -172,4 +172,3 @@ if __name__ == "__main__":
     print(f"\n{'='*60}")
     print("Test Complete!")
     print(f"{'='*60}")
-

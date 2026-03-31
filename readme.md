@@ -1,24 +1,85 @@
 # 项目介绍
 自然语言转sql，执行sql查询并得到结果，并将结果告诉提问者
 ## 功能模块
-流程：
-1. 用户提问、llm解析用户意图进行判断，若是无关数据库查询问题，直接回答，若是关于数据库查询，跳到步骤2
-2. llm理解Schema、抽取相应的表和字段，明白字段意思，注入到sql_prompt中，进行步骤3
-3. llm根据sql_prompt 生成sql, 进行步骤4
-4. 
+
+### 完整流程
+
+```
+parse_intent → select_tables → generate_sql → validate_sql → sandbox_check
+                                                        ↓
+                                    ┌───────────────────┴───────────────────┐
+                                    ↓ (安全)                                ↓ (不安全)
+                              execute_sql                         (跳过执行)
+                                    ↓                                       ↓
+                                    └───────────────→ generate_answer ←─────┘
+                                                        ↓
+                                                      END
+```
+
+### 模块说明
+
+| 步骤 | 模块 | 功能 | 文件 |
+|------|------|------|------|
+| 1 | 意图解析 (parse_intent) | 解析用户问题意图，识别问题类型（聚合/排名/查询/未知），提取数量词和时间范围 | `graphs/base_graph.py` |
+| 2 | 表选择 (select_tables) | LLM 理解数据库 Schema，从所有表中选择与用户问题相关的表，并进行表名验证 | `graphs/nodes/select_tables.py` |
+| 3 | SQL 生成 (generate_sql) | 根据选中的表结构和用户问题，LLM 生成对应的 SQL 查询语句 | `graphs/nodes/generate_sql.py` |
+| 4 | SQL 验证 (validate_sql) | 使用 sqlglot 验证 SQL 语法正确性；若验证失败，将错误信息反馈给 LLM 进行修正（最多重试 2 次） | `graphs/nodes/validate_sql.py`<br>`tools/sql_validator.py` |
+| 5 | 沙箱检查 (sandbox_check) | 安全检查：只读权限验证（仅允许 SELECT）、危险关键字黑名单（DROP/DELETE/INSERT 等）、多语句注入检测、查询复杂度限制（JOIN 数量/子查询深度） | `graphs/nodes/sandbox_check.py`<br>`tools/sql_sandbox.py` |
+| 6 | SQL 执行 (execute_sql) | 执行通过验证和安全检查的 SQL 查询，返回查询结果 | `graphs/nodes/execute_sql.py`<br>`tools/db.py` |
+| 7 | 答案生成 (generate_answer) | 将 SQL 执行结果转化为用户友好的详细数据分析报告；统一处理所有场景（执行成功/失败/沙箱拦截/无数据） | `graphs/nodes/generate_answer.py` |
+
+### 安全机制
+
+- **语法验证**: 使用 sqlglot 进行 SQL 语法解析，确保生成的 SQL 语法正确
+- **沙箱隔离**: 多层安全检查，防止恶意 SQL 注入和危险操作
+  - 只读权限检查（仅允许 SELECT/WITH 语句）
+  - 危险关键字黑名单（DROP, DELETE, INSERT, UPDATE, ALTER, CREATE, ATTACH, DETACH, PRAGMA 等）
+  - 多语句注入检测（防止分号后的额外语句）
+  - 查询复杂度限制（最大 JOIN 数量、子查询深度、查询长度）
+- **重试机制**: SQL 语法验证失败时，自动将错误信息反馈给 LLM 进行修正
+
+### 配置说明
+
+- **数据库方言**: 支持可配置的 SQL 方言（默认 sqlite，可扩展 mysql/postgres 等）
+- **重试次数**: 可配置 SQL 验证重试次数（默认 2 次）
+- **沙箱限制**: 可配置最大结果行数、最大查询长度、最大 JOIN 数量、最大子查询深度
 
 ## 项目结构
 ```
 rookie-nl2sql/
 ├── graphs/
-│   ├── state.py           # State 定义
-│   └── base_graph.py      # 基础图实现
+│   ├── state.py                    # State 定义
+│   ├── base_graph.py               # 基础图实现（节点定义、图构建、路由函数）
+│   └── nodes/
+│       ├── select_tables.py        # 表选择节点
+│       ├── generate_sql.py         # SQL 生成节点
+│       ├── validate_sql.py         # SQL 语法验证节点（含 LLM 重试修正）
+│       ├── sandbox_check.py        # 沙箱安全检查节点
+│       ├── execute_sql.py          # SQL 执行节点
+│       └── generate_answer.py      # 答案生成节点（统一处理所有场景）
+├── tools/
+│   ├── db.py                       # 数据库客户端（SQLite）
+│   ├── llm_client.py               # LLM 客户端（多提供商支持）
+│   ├── sql_validator.py            # SQL 语法验证器（sqlglot）
+│   ├── sql_sandbox.py              # SQL 沙箱安全检查器
+│   └── function_call.py            # Function Call 工具集
+├── prompts/
+│   ├── nl2sqlme.txt                # NL2SQL 主提示词
+│   ├── table_selection.txt         # 表选择提示词
+│   ├── sql_fix.txt                 # SQL 语法修复提示词
+│   └── answer.txt                  # 答案生成提示词（详细分析报告）
 ├── configs/
-│   ├── config.py          # 配置加载器
-│   └── dev.yaml           # 开发环境配置
-├── .env.example           # 环境变量模板
-├── requirements.txt       # 依赖清单
-└── README.md             # 项目说明
+│   ├── config.py                   # 配置加载器
+│   └── dev.yaml                    # 开发环境配置
+├── data/
+│   └── chinook.db                  # SQLite 示例数据库
+├── logs/
+│   └── query_log.jsonl             # 查询日志
+├── tests/                          # 测试文件
+├── scripts/                        # 脚本文件
+├── .env                            # 环境变量
+├── requirements.txt                # 依赖清单
+└── README.md                       # 项目说明
 ```
 
 ### 1. 环境准备

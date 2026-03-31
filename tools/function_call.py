@@ -14,7 +14,6 @@ sys.path.insert(0, str(project_root))
 from tools.db import db_client
 from langchain.tools import tool
 
-
 def get_table_names() -> str:
     """
     获取数据库中所有表名的列表
@@ -44,8 +43,6 @@ def get_table_schema(table_name: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
-
-
 def get_table_relationships(table_name: str) -> str:
     """
     获取指定表的外键关系信息
@@ -62,8 +59,6 @@ def get_table_relationships(table_name: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
-
-
 def get_all_tables_schemas() -> str:
     """
     获取所有表的结构信息（谨慎使用，可能返回大量数据）
@@ -71,32 +66,30 @@ def get_all_tables_schemas() -> str:
     Returns:
         JSON字符串，包含所有表的结构
     """
-    # try:
-    #     schemas = db_client.get_all_schemas()
-    #     return json.dumps(schemas, ensure_ascii=False, indent=2)
-    # except Exception as e:
-    #     return json.dumps({"error": str(e)}, ensure_ascii=False)
+    try:
+        schemas = db_client.get_all_schemas()
+        return json.dumps(schemas, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
 
-    schema_lines = []
-
-    # Get all table names
-    tables = db_client.get_table_names()
-
-    for table_name in tables:
-        # Get table schema
-        table_schema = db_client.get_table_schema(table_name)
-        columns = table_schema.get("columns", [])
-
-        # Extract column names
-        column_names = [col["name"] for col in columns]
-
-        # Format string
-        columns_str = ", ".join(column_names)
-        schema_lines.append(f"- {table_name} ({columns_str})")
-
-    return "\n".join(schema_lines)
-
-
+    # schema_lines = []
+    #
+    # # Get all table names
+    # tables = db_client.get_table_names()
+    #
+    # for table_name in tables:
+    #     # Get table schema
+    #     table_schema = db_client.get_table_schema(table_name)
+    #     columns = table_schema.get("columns", [])
+    #
+    #     # Extract column names
+    #     column_names = [col["name"] for col in columns]
+    #
+    #     # Format string
+    #     columns_str = ", ".join(column_names)
+    #     schema_lines.append(f"- {table_name} ({columns_str})")
+    #
+    # return "\n".join(schema_lines)
 
 def execute_read_only_sql(sql: str) -> str:
     """
@@ -119,9 +112,7 @@ def execute_read_only_sql(sql: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
-
-
 if __name__ == '__main__':
-    print(get_table_names())
+    print(get_all_tables_schemas())
 
 

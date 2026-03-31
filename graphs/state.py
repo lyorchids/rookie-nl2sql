@@ -40,13 +40,18 @@ class NL2SQLState(TypedDict):
     # SQL执行结果
     execution_result: Optional[Dict]
     executed_at: Optional[str]
+
     execute_sql: Optional[str]
+
+    # 沙箱安全检查
+    sandbox: Optional[Dict]
 
     # 最终输出
     answer: str
 
     # Schema与知识
     schema: Dict
+    tables: Optional[str]
     rag_evidence: List
 
 

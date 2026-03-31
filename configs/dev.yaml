@@ -66,3 +66,16 @@ security:
   allowed_operations: ["SELECT"]
   max_execution_time: 10
   max_result_rows: 1000
+
+# SQL Validation Configuration (M4+)
+validation:
+  dialect: "sqlite"  # sqlite, mysql, postgres, etc.
+  max_retries: 2     # Maximum retry attempts for SQL fix
+
+# SQL Sandbox Security Configuration (M5+)
+sandbox:
+  enabled: true
+  max_result_rows: 1000
+  max_query_length: 5000
+  max_join_count: 5
+  max_subquery_depth: 3

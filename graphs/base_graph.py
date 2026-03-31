@@ -22,11 +22,17 @@ try:
     from graphs.nodes.generate_sql import generate_sql_node
     from graphs.nodes.execute_sql import execute_sql_node
     from graphs.nodes.select_tables import select_tables_node
+    from graphs.nodes.validate_sql import validate_sql_node
+    from graphs.nodes.sandbox_check import sandbox_check_node, route_after_sandbox
+    from graphs.nodes.generate_answer import generate_answer_node
 except ImportError:
     from state import NL2SQLState
     from nodes.generate_sql import generate_sql_node
     from nodes.execute_sql import execute_sql_node
     from nodes.select_tables import select_tables_node
+    from nodes.validate_sql import validate_sql_node
+    from nodes.sandbox_check import sandbox_check_node, route_after_sandbox
+    from nodes.generate_answer import generate_answer_node
 
 def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
     """
@@ -86,8 +92,44 @@ def echo_node(state: NL2SQLState) -> NL2SQLState:
     print(f"Timestamp: {state.get('timestamp')}")
     print(f"candidate_sql: {state.get('candidate_sql')}")
     print(f"sql_generated_at: {state.get('sql_generated_at')}")
-    print(f"execution_result: {state.get('execution_result')}")
+
+    # Show sandbox check result
+    sandbox = state.get("sandbox")
+    if sandbox:
+        print(f"\n--- Sandbox Check ---")
+        print(f"  is_safe: {sandbox.get('is_safe')}")
+        print(f"  risk_level: {sandbox.get('risk_level')}")
+        if sandbox.get('warnings'):
+            print(f"  warnings: {sandbox.get('warnings')}")
+        if sandbox.get('blocked_reason'):
+            print(f"  blocked_reason: {sandbox.get('blocked_reason')}")
+
+    # Show validation result
+    validation = state.get("validation")
+    if validation:
+        print(f"\n--- Validation ---")
+        print(f"  is_valid: {validation.get('is_valid')}")
+        print(f"  retry_count: {validation.get('retry_count', 0)}")
+
+    # Show execution result
+    exec_result = state.get("execution_result")
+    if exec_result:
+        print(f"\n--- Execution Result ---")
+        print(f"  ok: {exec_result.get('ok')}")
+        print(f"  row_count: {exec_result.get('row_count')}")
+        if exec_result.get('error'):
+            print(f"  error: {exec_result.get('error')}")
     print(f"executed_at: {state.get('executed_at')}")
+
+    # Show final answer
+    answer = state.get("answer")
+    if answer:
+        print(f"\n{'='*50}")
+        print(f"=== Final Answer ===")
+        print(f"{'='*50}")
+        print(answer)
+        print(f"{'='*50}\n")
+
     print(f"\n{'='*50}\n")
     return state
 
@@ -144,18 +186,31 @@ def build_graph() -> StateGraph:
     workflow.add_node("parse_intent", parse_intent_node)
     workflow.add_node("select_tables", select_tables_node)
     workflow.add_node("generate_sql", generate_sql_node)
+    workflow.add_node("validate_sql", validate_sql_node)
+    workflow.add_node("sandbox_check", sandbox_check_node)
     workflow.add_node("execute_sql", execute_sql_node)
+    workflow.add_node("generate_answer", generate_answer_node)
     #workflow.add_node("log", log_node)
-    workflow.add_node("echo", echo_node)
+    #workflow.add_node("echo", echo_node)  # Debug node, commented out
 
     # Define edges
     workflow.set_entry_point("parse_intent")
     workflow.add_edge("parse_intent", "select_tables")
     workflow.add_edge("select_tables", "generate_sql")
-    workflow.add_edge("generate_sql", "execute_sql")
-    workflow.add_edge("execute_sql", "echo")
+    workflow.add_edge("generate_sql", "validate_sql")
+    workflow.add_edge("validate_sql", "sandbox_check")
+    workflow.add_conditional_edges(
+        "sandbox_check",
+        route_after_sandbox,
+        {
+            "execute_sql": "execute_sql",
+            "generate_answer": "generate_answer"
+        }
+    )
+    workflow.add_edge("execute_sql", "generate_answer")
+    workflow.add_edge("generate_answer", END)
     #workflow.add_edge("log", "echo")
-    workflow.add_edge("echo", END)
+    #workflow.add_edge("echo", END)
 
     # Compile graph
     graph = workflow.compile()
@@ -206,7 +261,7 @@ if __name__ == "__main__":
     """
     # Test cases
     test_questions = [
-        "分析美国市场各音乐类型的销售占比，找出最受欢迎的3种音乐类型",
+        "删除所有客户数据",
     ]
 
     print("\n" + "="*70)

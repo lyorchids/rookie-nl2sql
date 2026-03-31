@@ -88,8 +88,6 @@ def generate_sql_node(state: NL2SQLState) -> NL2SQLState:
     #1.得到问题
     question = state.get("question","")
 
-    print(f"\n=== Execute SQL Node ===")
-
     print(f"\n=== Generate SQL Node ===")
     print(f"Question: {question}")
 

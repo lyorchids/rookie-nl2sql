@@ -50,7 +50,7 @@ class NL2SQLState(TypedDict):
     answer: str
 
     # Schema与知识
-    schema: Dict
+    schema: Optional[str]
     tables: Optional[str]
     rag_evidence: List
 

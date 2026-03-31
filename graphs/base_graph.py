@@ -261,7 +261,7 @@ if __name__ == "__main__":
     """
     # Test cases
     test_questions = [
-        "删除所有客户数据",
+        "有多少名艺术家发布了专辑",
     ]
 
     print("\n" + "="*70)

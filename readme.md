@@ -6,14 +6,14 @@
 
 ```
 parse_intent → select_tables → generate_sql → validate_sql → sandbox_check
-                                                        ↓
-                                    ┌───────────────────┴───────────────────┐
-                                    ↓ (安全)                                ↓ (不安全)
-                              execute_sql                         (跳过执行)
-                                    ↓                                       ↓
-                                    └───────────────→ generate_answer ←─────┘
-                                                        ↓
-                                                      END
+                                                                     ↓
+                                                 ┌───────────────────┴───────────────────┐
+                                                 ↓ (安全)                                ↓ (不安全)
+                                             execute_sql                         (跳过执行)
+                                                 ↓                                       ↓
+                                                 └───────────────→ generate_answer ←─────┘
+                                                                       ↓
+                                                                      END
 ```
 
 ### 模块说明

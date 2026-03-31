@@ -112,6 +112,37 @@ def execute_read_only_sql(sql: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
+def get_selected_schema_string(selected_tables: List[str]) -> str:
+    """
+    Get schema string for only the selected tables, including column types and constraints.
+
+    Args:
+        selected_tables: List of selected table names
+
+    Returns:
+        Formatted schema string for selected tables
+    """
+    schema_lines = []
+
+    for table_name in selected_tables:
+        table_schema = db_client.get_table_schema(table_name)
+        columns = table_schema.get("columns", [])
+
+        column_parts = []
+        for col in columns:
+            parts = [col["name"], col["type"]]
+            if col.get("primary_key"):
+                parts.append("PK")
+            if col.get("not_null"):
+                parts.append("NOT NULL")
+            column_parts.append(" ".join(parts))
+
+        columns_str = ", ".join(column_parts)
+        schema_lines.append(f"- {table_name} ({columns_str})")
+
+    return "\n".join(schema_lines)
+
+
 if __name__ == '__main__':
     print(get_all_tables_schemas())
 

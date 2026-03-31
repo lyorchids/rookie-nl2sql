@@ -2,11 +2,9 @@
 SQL Validation Node.
 Validates SQL syntax using sqlglot and retries with LLM if validation fails.
 """
-import sys
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any
-
+import sys
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -15,7 +13,7 @@ from tools.db import db_client
 from tools.sql_validator import sql_validator
 from tools.llm_client import llm_client
 from graphs.state import NL2SQLState
-from graphs.nodes.generate_sql import extract_sql_from_response, load_prompt_template
+from tools.utils import extract_sql_from_response, load_prompt_template
 
 
 def validate_sql_node(state: NL2SQLState) -> NL2SQLState:

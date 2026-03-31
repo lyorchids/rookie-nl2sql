@@ -11,14 +11,9 @@ import json
 import time
 from functools import wraps
 
-# Set UTF-8 encoding for Windows console
-if sys.platform == 'win32':
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
-
 try:
     from graphs.state import NL2SQLState
+    from graphs.nodes.parse_intent import parse_intent_node, route_after_intent
     from graphs.nodes.generate_sql import generate_sql_node
     from graphs.nodes.execute_sql import execute_sql_node
     from graphs.nodes.select_tables import select_tables_node
@@ -27,58 +22,13 @@ try:
     from graphs.nodes.generate_answer import generate_answer_node
 except ImportError:
     from state import NL2SQLState
+    from nodes.parse_intent import parse_intent_node, route_after_intent
     from nodes.generate_sql import generate_sql_node
     from nodes.execute_sql import execute_sql_node
     from nodes.select_tables import select_tables_node
     from nodes.validate_sql import validate_sql_node
     from nodes.sandbox_check import sandbox_check_node, route_after_sandbox
     from nodes.generate_answer import generate_answer_node
-
-def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
-    """
-    Parse user intent from the question.
-    M0: Simple intent extraction with metadata.
-    """
-    question = state.get("question", "")
-    question_lower = question.lower()
-
-    if any(kw in question_lower for kw in ["统计", "多少", "总计", "count", "sum"]):
-        question_type = "aggregation"
-    elif any(kw in question_lower for kw in ["排名", "top", "前", "最"]):
-        question_type = "ranking"
-    elif any(kw in question_lower for kw in ["查询", "显示", "show", "select"]):
-        question_type = "select"
-    else:
-        question_type = "unknown"
-
-    # 2. 提取数量词
-    import re
-    numbers = re.findall(r'\d+', question)
-    limit = int(numbers[0]) if numbers else None
-
-    # 3. 检测时间范围
-    has_time = any(kw in question_lower
-                    for kw in ["今天", "本月", "本年", "yesterday", "last"])
-
-    # Simple intent parsing - will be enhanced in future modules
-    intent = {
-        "type": "query",
-        "question_length": len(question),
-        "has_time_range": has_time,
-        "has_keywords": any(kw in question.lower() for kw in ["查询", "多少", "什么", "哪些", "统计", "show", "what", "how many"]),
-        "parsed_at": datetime.now().isoformat()
-    }
-
-    print(f"\n=== Enhanced Intent ===")
-    print(f"Type: {question_type}")
-    print(f"Limit: {limit}")
-    print(f"Has Time Range: {has_time}")
-
-    return {
-        **state,
-        "intent": intent,
-        "timestamp": datetime.now().isoformat()
-    }
 
 def echo_node(state: NL2SQLState) -> NL2SQLState:
     """
@@ -195,7 +145,14 @@ def build_graph() -> StateGraph:
 
     # Define edges
     workflow.set_entry_point("parse_intent")
-    workflow.add_edge("parse_intent", "select_tables")
+    workflow.add_conditional_edges(
+        "parse_intent",
+        route_after_intent,
+        {
+            "select_tables": "select_tables",
+            "generate_answer": "generate_answer"
+        }
+    )
     workflow.add_edge("select_tables", "generate_sql")
     workflow.add_edge("generate_sql", "validate_sql")
     workflow.add_edge("validate_sql", "sandbox_check")
@@ -261,7 +218,7 @@ if __name__ == "__main__":
     """
     # Test cases
     test_questions = [
-        "删除所有客户数据",
+        "找出销售额最高的前10个客户",
     ]
 
     print("\n" + "="*70)

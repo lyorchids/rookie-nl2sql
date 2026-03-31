@@ -1,12 +1,6 @@
-import sys
-import os
 from pathlib import Path
 from datetime import datetime
-import time
-from typing import Dict, Any
-from langchain_core.prompts import PromptTemplate
-
-
+import sys
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -14,74 +8,7 @@ sys.path.insert(0, str(project_root))
 from tools.db import db_client
 from graphs.state import NL2SQLState
 from tools.llm_client import llm_client
-
-def load_prompt_template(template_name: str) -> str:
-    #1.获取提示词模板路径
-    template_path = project_root / "prompts" / f"{template_name}.txt"
-    #2.判断路径是否存在
-    if not template_path.exists():
-        raise FileNotFoundError(f"Prompt template not found: {template_path}")
-    #3.读取文件并返回提示词
-    with open(template_path, "r", encoding="utf-8") as f:
-        return f.read()
-
-def extract_sql_from_response(response: str) -> str:
-    # 处理 ```sql ... ``` 格式
-    if "```sql" in response:
-        # Extract content between ```sql and ```
-        start = response.find("```sql") + 6
-        end = response.find("```", start)
-        sql = response[start:end].strip()
-    # 处理 ``` ... ``` 格式
-    elif "```" in response:
-        # Extract content between ``` and ```
-        start = response.find("```") + 3
-        end = response.find("```", start)
-        sql = response[start:end].strip()
-    # 处理普通文本
-    else:
-        # No code blocks, use the entire response
-        sql = response.strip()
-
-        # Clean up
-    sql = sql.strip()
-
-    # Ensure SQL ends with semicolon
-    if not sql.endswith(";"):
-        sql += ";"
-
-    return sql
-
-
-def get_database_schema_string() -> str:
-    """
-    获取数据库中所有表名和表对应的字段字符串
-
-    返回格式：
-    - 表名1 (字段1, 字段2, ...)
-    - 表名2 (字段1, 字段2, ...)
-
-    Returns:
-        str: 格式化的表结构字符串
-    """
-    schema_lines = []
-
-    # 获取所有表名
-    tables = db_client.get_table_names()
-
-    for table_name in tables:
-        # 获取表结构
-        table_schema = db_client.get_table_schema(table_name)
-        columns = table_schema.get("columns", [])
-
-        # 提取字段名
-        column_names = [col["name"] for col in columns]
-
-        # 格式化字符串
-        columns_str = ", ".join(column_names)
-        schema_lines.append(f"- {table_name} ({columns_str})")
-
-    return "\n".join(schema_lines)
+from tools.utils import load_prompt_template, extract_sql_from_response
 
 
 def generate_sql_node(state: NL2SQLState) -> NL2SQLState:

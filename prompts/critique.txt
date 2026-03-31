@@ -1,2 +1,0 @@
-# SQL 修复 Prompt（M4）
-

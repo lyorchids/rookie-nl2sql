@@ -3,8 +3,15 @@ LLM Client wrapper for NL2SQL system.
 Supports DeepSeek, Qwen, and OpenAI with unified interface.
 """
 import sys
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+
+# Set UTF-8 encoding for Windows console
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

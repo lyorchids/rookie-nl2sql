@@ -218,7 +218,7 @@ if __name__ == "__main__":
     """
     # Test cases
     test_questions = [
-        "找出销售额最高的前10个客户",
+        "今天吃什么？",
     ]
 
     print("\n" + "="*70)

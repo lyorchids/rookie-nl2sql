@@ -2,19 +2,6 @@
 自然语言转sql，执行sql查询并得到结果，并将结果告诉提问者
 ## 功能模块
 
-### 完整流程
-
-```
-parse_intent → select_tables → generate_sql → validate_sql → sandbox_check
-                                                                     ↓
-                                                 ┌───────────────────┴───────────────────┐
-                                                 ↓ (安全)                                ↓ (不安全)
-                                             execute_sql                         (跳过执行)
-                                                 ↓                                       ↓
-                                                 └───────────────→ generate_answer ←─────┘
-                                                                       ↓
-                                                                      END
-```
 
 ### 模块说明
 
@@ -48,38 +35,17 @@ parse_intent → select_tables → generate_sql → validate_sql → sandbox_che
 ```
 rookie-nl2sql/
 ├── graphs/
-│   ├── state.py                    # State 定义
-│   ├── base_graph.py               # 基础图实现（节点定义、图构建、路由函数）
+│   ├── state.py                   # State 定义
+│   ├── base_graph.py              # 基础图实现
 │   └── nodes/
-│       ├── select_tables.py        # 表选择节点
-│       ├── generate_sql.py         # SQL 生成节点
-│       ├── validate_sql.py         # SQL 语法验证节点（含 LLM 重试修正）
-│       ├── sandbox_check.py        # 沙箱安全检查节点
-│       ├── execute_sql.py          # SQL 执行节点
-│       └── generate_answer.py      # 答案生成节点（统一处理所有场景）
 ├── tools/
-│   ├── db.py                       # 数据库客户端（SQLite）
-│   ├── llm_client.py               # LLM 客户端（多提供商支持）
-│   ├── sql_validator.py            # SQL 语法验证器（sqlglot）
-│   ├── sql_sandbox.py              # SQL 沙箱安全检查器
-│   └── function_call.py            # Function Call 工具集
 ├── prompts/
-│   ├── nl2sqlme.txt                # NL2SQL 主提示词
-│   ├── table_selection.txt         # 表选择提示词
-│   ├── sql_fix.txt                 # SQL 语法修复提示词
-│   └── answer.txt                  # 答案生成提示词（详细分析报告）
 ├── configs/
-│   ├── config.py                   # 配置加载器
-│   └── dev.yaml                    # 开发环境配置
 ├── data/
-│   └── chinook.db                  # SQLite 示例数据库
-├── logs/
-│   └── query_log.jsonl             # 查询日志
-├── tests/                          # 测试文件
-├── scripts/                        # 脚本文件
-├── .env                            # 环境变量
-├── requirements.txt                # 依赖清单
-└── README.md                       # 项目说明
+├── tests/                         # 测试文件
+├── scripts/                       # 脚本文件
+├── requirements.txt               # 依赖清单
+└── README.md                      # 项目说明
 ```
 
 ### 1. 环境准备

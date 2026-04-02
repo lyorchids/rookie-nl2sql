@@ -6,6 +6,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 import sys
+
+from langchain_core.messages import HumanMessage
+
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -21,11 +24,19 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
     Determines if the question is database-related and normalizes it.
     """
     question = state.get("question", "")
+    session_id = state.get("session_id", "")
+
+    # 创建用户消息
+    user_message = HumanMessage(content=question)
+
+    # 执行图并获取结果
 
     print(f"\n=== Parse Intent Node ===")
     print(f"Question: {question}")
 
     try:
+
+
         prompt_template = load_prompt_template("intent_recognition")
         prompt = prompt_template.format(question=question)
 
@@ -82,12 +93,6 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
                 "time_range": None,
                 "reason": "Failed to extract JSON from LLM response, defaulting to relevant"
             }
-
-        print(f"\nParsed Intent:")
-        print(f"  is_relevant: {intent.get('is_relevant')}")
-        print(f"  intent_type: {intent.get('intent_type')}")
-        print(f"  normalized_question: {intent.get('normalized_question')}")
-        print(f"  reason: {intent.get('reason')}")
 
         # If question is irrelevant, set answer directly
         if not intent.get("is_relevant", True):

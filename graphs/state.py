@@ -21,6 +21,7 @@ class NL2SQLState(TypedDict):
     """
     # 用户输入
     question: str
+    normalized_question: str
     # 意图解析
     intent: Optional[Dict[str, Any]]
 
@@ -45,6 +46,8 @@ class NL2SQLState(TypedDict):
 
     # 沙箱安全检查
     sandbox: Optional[Dict]
+
+    show: Optional[str]
 
     # 最终输出
     answer: str

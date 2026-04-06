@@ -28,8 +28,6 @@ def sandbox_check_node(state: NL2SQLState) -> NL2SQLState:
     question = state.get("question", "")
 
     print(f"\n=== Sandbox Check Node ===")
-    print(f"Question: {question}")
-    print(f"SQL to check: {candidate_sql}")
 
     if not candidate_sql:
         print("⚠ No SQL to check, marking as unsafe")
@@ -42,19 +40,21 @@ def sandbox_check_node(state: NL2SQLState) -> NL2SQLState:
     else:
         # Perform sandbox check
         sandbox_result = sql_sandbox.check(candidate_sql)
-        print(f"  is_safe: {sandbox_result['is_safe']}")
-        print(f"  risk_level: {sandbox_result['risk_level']}")
-        if sandbox_result['warnings']:
-            print(f"  warnings: {sandbox_result['warnings']}")
-        if sandbox_result['blocked_reason']:
-            print(f"  blocked_reason: {sandbox_result['blocked_reason']}")
+        # print(f"  is_safe: {sandbox_result['is_safe']}")
+        # print(f"  risk_level: {sandbox_result['risk_level']}")
 
+        show = f"sql沙箱验证，是否安全：{sandbox_result['is_safe']}，危险等级：{sandbox_result['risk_level']}"
+        if sandbox_result['warnings']:
+            show += f"警告：{sandbox_result['warnings']}"
+        if sandbox_result['blocked_reason']:
+            show += f"拦截原因: {sandbox_result['blocked_reason']}"
     return {
         **state,
         "sandbox": {
             **sandbox_result,
             "checked_at": datetime.now().isoformat()
-        }
+        },
+        "show": show
     }
 
 

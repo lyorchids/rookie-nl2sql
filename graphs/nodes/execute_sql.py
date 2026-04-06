@@ -15,8 +15,8 @@ def execute_sql_node(state: NL2SQLState) -> NL2SQLState:
     
     # 1. 获取生成的 SQL
     sql = state.get("candidate_sql")
-    print(f"SQL to execute: {sql}")
-    
+    #print(f"SQL to execute: {sql}")
+
     if not sql or not sql.strip():
         print("✗ No SQL to execute")
         return {
@@ -34,18 +34,20 @@ def execute_sql_node(state: NL2SQLState) -> NL2SQLState:
     # 2. 调用数据库客户端执行
     try:
         result = db_client.query(sql)
-        print(f"Query result: {result}")
-        
+        show = "执行sql，"
         if result["ok"]:
-            print(f"✓ Query successful - {result['row_count']} rows returned")
+            show += f"查询成功：{result['row_count']}行数据"
+            #print(f"✓ Query successful - {result['row_count']} rows returned")
         else:
-            print(f"✗ Query failed: {result['error']}")
+            show += f"查询失败：{result['error']}"
+            #print(f"✗ Query failed: {result['error']}")
         
         # 3. 返回更新后的 State
         return {
             **state,
             "execution_result": result,
-            "executed_at": datetime.now().isoformat()
+            "executed_at": datetime.now().isoformat(),
+            "show": show
         }
         
     except Exception as e:

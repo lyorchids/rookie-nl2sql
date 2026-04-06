@@ -16,7 +16,7 @@ def generate_sql_node(state: NL2SQLState) -> NL2SQLState:
     question = state.get("question","")
 
     print(f"\n=== Generate SQL Node ===")
-    print(f"Question: {question}")
+    #print(f"Question: {question}")
 
     #2.得到提示词模板
     prompt_template = load_prompt_template("nl2sqlme")
@@ -40,16 +40,19 @@ def generate_sql_node(state: NL2SQLState) -> NL2SQLState:
         # Call LLM
         response = llm_client.chat(prompt=prompt)
 
-        print(f"\nLLM Response:\n{response}")
+        #print(f"\nLLM Response:\n{response}")
 
         # Extract SQL from response
         candidate_sql = extract_sql_from_response(response)
 
-        print(f"\nExtracted SQL:\n{candidate_sql}")
+        #print(f"\nExtracted SQL:\n{candidate_sql}")
+
+        show = f"生成sql，根据提取的schema生成候选sql：\n{candidate_sql}"
 
         return {
             **state,
             "candidate_sql": candidate_sql,
+            "show": show,
             "sql_generated_at": datetime.now().isoformat()
         }
 

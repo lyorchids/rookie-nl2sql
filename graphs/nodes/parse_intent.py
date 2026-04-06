@@ -24,24 +24,15 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
     Determines if the question is database-related and normalizes it.
     """
     question = state.get("question", "")
-    session_id = state.get("session_id", "")
-
-    # 创建用户消息
-    user_message = HumanMessage(content=question)
-
-    # 执行图并获取结果
 
     print(f"\n=== Parse Intent Node ===")
     print(f"Question: {question}")
 
     try:
-
-
         prompt_template = load_prompt_template("intent_recognition")
         prompt = prompt_template.format(question=question)
 
         response = llm_client.chat(prompt=prompt)
-        print(f"\nLLM Response:\n{response}")
 
         # Extract JSON from response using multiple strategies
         json_str = None
@@ -52,7 +43,7 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
             end = response.find("```", start)
             if end > start:
                 json_str = response[start:end].strip()
-                print(f"\nExtracted JSON from ```json block")
+                #print(f"\nExtracted JSON from ```json block")
 
         # Strategy 2: Extract from ``` code block
         if json_str is None and "```" in response:
@@ -60,7 +51,7 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
             end = response.find("```", start)
             if end > start:
                 json_str = response[start:end].strip()
-                print(f"\nExtracted JSON from ``` block")
+               #print(f"\nExtracted JSON from ``` block")
 
         # Strategy 3: Extract from first { to last }
         if json_str is None:
@@ -68,11 +59,10 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
             end = response.rfind('}') + 1
             if start != -1 and end > start:
                 json_str = response[start:end]
-                print(f"\nExtracted JSON using brace matching")
+                #print(f"\nExtracted JSON using brace matching")
 
         # Parse JSON
         if json_str:
-            print(f"\nJSON String (first 300 chars):\n{json_str[:300]}")
             try:
                 intent = json.loads(json_str)
             except json.JSONDecodeError as e:
@@ -88,29 +78,22 @@ def parse_intent_node(state: NL2SQLState) -> NL2SQLState:
             intent = {
                 "is_relevant": True,
                 "intent_type": "unknown",
-                "normalized_question": question,
-                "entities": [],
-                "time_range": None,
+                "question": question,
                 "reason": "Failed to extract JSON from LLM response, defaulting to relevant"
             }
 
-        # If question is irrelevant, set answer directly
-        if not intent.get("is_relevant", True):
-            irrelevant_answer = f"抱歉，您的问题'{question}'与数据库查询无关。我可以帮您查询数据库相关信息，请重新提问。"
-            return {
-                **state,
-                "intent": intent,
-                "answer": irrelevant_answer,
-                "timestamp": datetime.now().isoformat()
-            }
 
         # If relevant, normalize the question
         normalized_question = intent.get("normalized_question", question)
+
+        show = f"识别结果，是否与数据相关：{intent.get('is_relevant')}，意图：{intent.get('intent_type')}"
+
+
         return {
             **state,
             "intent": intent,
+            "show": show,
             "question": normalized_question,
-            "timestamp": datetime.now().isoformat()
         }
 
     except Exception as e:
@@ -168,7 +151,6 @@ if __name__ == '__main__':
         test_state: NL2SQLState = {
             "question": case["question"],
             "session_id": f"test-{i}",
-            "timestamp": None,
             "intent": None,
         }
 

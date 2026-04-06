@@ -4,12 +4,14 @@ Minimal runnable implementation with input/output nodes.
 """
 import sys
 import os
+import asyncio
 from langgraph.graph import StateGraph, END
 from datetime import datetime
 import uuid
 import json
 import time
 from functools import wraps
+from langgraph.checkpoint.memory import InMemorySaver
 
 try:
     from graphs.state import NL2SQLState
@@ -175,7 +177,7 @@ def build_graph() -> StateGraph:
     return graph
 
 @monitor_performance
-def run_query(question: str, session_id: str = None) -> NL2SQLState:
+async def run_query(question: str, session_id: str = None) -> NL2SQLState:
     """
     Run a single query through the graph.
 
@@ -201,36 +203,27 @@ def run_query(question: str, session_id: str = None) -> NL2SQLState:
     }
 
     # Run graph
-    print(f"\n{'='*50}")
-    print(f"Starting NL2SQL Graph (M0 - Scaffold)")
-    print(f"{'='*50}")
-
-    result = graph.invoke(initial_state)
-
-    return result
+    print(f"Starting NL2SQL Graph")
+    #result = graph.invoke(initial_state)
+    # 执行图并使用 "updates" 模式流式输出
+    async for update in graph.astream(initial_state, stream_mode="updates"):
+        for node_name, node_update in update.items():
+            print(f"节点 '{node_name}' 完成，说明: {node_update['show']}")
+            if node_name == "generate_answer":
+                print(node_update['answer'])
+    #return result
 
 
 
 if __name__ == "__main__":
-    """
-    M0 Acceptance Test:
-    Input a question and verify that intent object is correctly printed.
-    """
     # Test cases
     test_questions = [
-        "今天吃什么？",
+        "拥有专辑最多的前3名艺术家",
     ]
 
-    print("\n" + "="*70)
-    print("M0 - NL2SQL Base Graph Test")
-    print("="*70)
-
     for i, question in enumerate(test_questions, 1):
-        print(f"\n### Test Case {i} ###")
-        result = run_query(question)
-        print(f"\nFinal State Keys: {list(result.keys())}")
-        print(f"Intent Parsed: {'✓' if result.get('intent') else '✗'}")
-
-    print("\n" + "="*70)
-    print("M0 Test Complete!")
-    print("="*70)
+        print(f"\n--- Test Case {i} ---")
+        asyncio.run(run_query(question))
+        #result = run_query(question)
+        #print(f"\nFinal State Keys: {list(result.keys())}")
+        #print(f"Intent Parsed: {'✓' if result.get('intent') else '✗'}")

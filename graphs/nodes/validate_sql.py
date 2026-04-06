@@ -31,9 +31,7 @@ def validate_sql_node(state: NL2SQLState) -> NL2SQLState:
     schema = state.get("schema", "")
 
     print(f"\n=== Validate SQL Node ===")
-    print(f"Question: {question}")
-    print(f"SQL to validate: {candidate_sql}")
-
+    #print(f"SQL to validate: {candidate_sql}")
     # If no SQL was generated, skip validation
     if not candidate_sql:
         print("⚠ No SQL to validate, skipping validation")
@@ -56,11 +54,14 @@ def validate_sql_node(state: NL2SQLState) -> NL2SQLState:
     while retry_count <= max_retries:
         # Validate SQL syntax
         validation_result = sql_validator.validate(current_sql)
-        print(f"\nValidation attempt {retry_count + 1}:")
-        print(f"  is_valid: {validation_result['is_valid']}")
+        #print(f"\nValidation attempt {retry_count + 1}:")
+        #print(f"  is_valid: {validation_result['is_valid']}")
+
+
 
         if validation_result["is_valid"]:
-            print(f"  ✓ SQL syntax is valid!")
+            #print(f"  ✓ SQL syntax is valid!")
+
             break
 
         # Validation failed
@@ -81,6 +82,8 @@ def validate_sql_node(state: NL2SQLState) -> NL2SQLState:
             print(f"\n  ✗ Max retries ({max_retries}) reached, using last generated SQL")
             retry_count += 1
 
+    show = f"验证sql是否出错，验证次数:{retry_count+1},验证是否成功{validation_result['is_valid']},验证失败原因：{validation_result['errors']}"
+
     return {
         **state,
         "candidate_sql": current_sql,
@@ -89,7 +92,8 @@ def validate_sql_node(state: NL2SQLState) -> NL2SQLState:
             "errors": validation_result["errors"],
             "retry_count": retry_count,
             "validated_at": datetime.now().isoformat()
-        }
+        },
+        "show": show
     }
 
 

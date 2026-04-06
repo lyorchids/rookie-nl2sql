@@ -28,8 +28,6 @@
   "is_relevant": true/false,
   "intent_type": "aggregation/select/ranking/filter/unknown/irrelevant",
   "normalized_question": "标准化后的问题",
-  "entities": ["识别到的实体"],
-  "time_range": "识别到的时间范围，如果没有则为null",
   "reason": "判断理由"
 }}
 ```
@@ -44,8 +42,6 @@
   - `unknown`: 相关但无法确定类型
   - `irrelevant`: 不相关
 - `normalized_question`: 标准化后的问题（去除口语化表达，使问题更清晰明确）
-- `entities`: 识别到的实体（表名、字段名、值等）
-- `time_range`: 识别到的时间范围
 - `reason`: 判断理由
 
 ## Few-shot 示例
@@ -58,8 +54,6 @@
   "is_relevant": true,
   "intent_type": "aggregation",
   "normalized_question": "查询发布过专辑的艺术家数量",
-  "entities": ["艺术家", "专辑"],
-  "time_range": null,
   "reason": "问题询问数量统计，涉及艺术家和专辑两个实体"
 }}
 ```
@@ -72,8 +66,6 @@
   "is_relevant": true,
   "intent_type": "select",
   "normalized_question": "查询所有客户的完整信息",
-  "entities": ["客户"],
-  "time_range": null,
   "reason": "问题要求查询客户表的数据"
 }}
 ```
@@ -86,8 +78,6 @@
   "is_relevant": false,
   "intent_type": "irrelevant",
   "normalized_question": "你好，今天过得怎么样",
-  "entities": [],
-  "time_range": null,
   "reason": "这是日常问候，不涉及数据库查询"
 }}
 ```
@@ -100,8 +90,6 @@
   "is_relevant": true,
   "intent_type": "ranking",
   "normalized_question": "按销售额降序排列，查询前10名客户",
-  "entities": ["客户", "销售额"],
-  "time_range": null,
   "reason": "问题要求排序并限制返回数量"
 }}
 ```

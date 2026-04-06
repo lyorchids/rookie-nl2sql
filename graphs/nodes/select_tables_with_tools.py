@@ -89,17 +89,11 @@ def select_tables_node(state: NL2SQLState) -> NL2SQLState:
         Updated state with selected tables
     """
     question = state.get("question", "")
-
     print(f"\n=== Select Tables Node ===")
-
     tools = [get_table_schema, get_table_relationships, get_all_tables_schemas]
-
     try:
         prompt_template = load_prompt_template("table_selection_with_tools")
         prompt = prompt_template.format(question=question)
-
-        print(f"\n=== Table Selection Prompt ===")
-        print(f"Prompt length: {len(prompt)} characters")
 
         agent = create_agent(
             model=llm_client.client,
@@ -112,8 +106,7 @@ def select_tables_node(state: NL2SQLState) -> NL2SQLState:
         })
 
         result = response['messages'][-1].content
-        print(f"\nLLM Response:\n{result}")
-
+        #print(f"\nLLM Response:\n{result}")
         selected_tables_str = extract_tables_from_response(result)
         print(f"\nSelected Tables: \n{selected_tables_str}")
 

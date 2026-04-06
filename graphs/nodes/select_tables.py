@@ -141,22 +141,23 @@ def select_tables_node(state: NL2SQLState) -> NL2SQLState:
                         question=question,
                         previous_response=previous_response
                     )
-
-
                 response = llm_client.chat(prompt=prompt)
                 previous_response = response
                 selected_tables_str = extract_tables_from_response(response)
-                print(f"\nSelected Tables: \n{selected_tables_str}")
+                #print(f"\nSelected Tables: \n{selected_tables_str}")
+
+                show = f"Schema理解，提取与问题相关的字段：\n{selected_tables_str}"
 
                 parsed_tables = parse_table_string_to_array(selected_tables_str)
                 invalid_tables = [t for t in parsed_tables if t not in valid_tables]
                 validated_tables = [t for t in parsed_tables if t in valid_tables]
 
                 if not invalid_tables and validated_tables:
-                    print(f"✓ All table names are valid")
+                    #print(f"✓ All table names are valid")
                     return {
                         **state,
                         "schema": selected_tables_str,
+                        "show": show,
                         "tables": validated_tables,
                     }
                 else:

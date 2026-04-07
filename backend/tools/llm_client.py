@@ -34,7 +34,7 @@ class LLMClient:
     All providers use OpenAI-compatible API format.
     """
 
-    def __init__(self, provider: Optional[str] = None):
+    def __init__(self, provider: Optional[str] = None, stream: bool = False):
         """
         Initialize LLM client.
 
@@ -61,7 +61,8 @@ class LLMClient:
             base_url=llm_config["base_url"],
             temperature=llm_config["temperature"],
             max_tokens=llm_config["max_tokens"],
-            timeout=llm_config["timeout"]
+            timeout=llm_config["timeout"],
+            streaming = stream
         )
 
         print(f"✓ LLM Client initialized: {self.provider} ({self.model})")
@@ -139,6 +140,7 @@ class LLMClient:
 
     def __repr__(self):
         return f"LLMClient(provider={self.provider}, model={self.model})"
+
 
 
 # Global LLM client instance

@@ -5,6 +5,9 @@ Minimal runnable implementation with input/output nodes.
 import sys
 import os
 import asyncio
+from typing import AsyncGenerator, Dict, Any
+
+from langchain_core.callbacks import AsyncCallbackHandler
 from langgraph.graph import StateGraph, END
 from datetime import datetime
 import uuid
@@ -31,6 +34,19 @@ except ImportError:
     from nodes.validate_sql import validate_sql_node
     from nodes.sandbox_check import sandbox_check_node, route_after_sandbox
     from nodes.generate_answer import generate_answer_node
+
+# Node name to Chinese label mapping
+NODE_LABELS = {
+    "parse_intent": "解析意图",
+    "select_tables": "选择数据表",
+    "generate_sql": "生成SQL",
+    "validate_sql": "验证SQL",
+    "sandbox_check": "安全检查",
+    "execute_sql": "执行SQL",
+    "generate_answer": "生成答案"
+}
+
+NODE_NAMES = list(NODE_LABELS.keys())
 
 def echo_node(state: NL2SQLState) -> NL2SQLState:
     """
@@ -176,6 +192,8 @@ def build_graph() -> StateGraph:
 
     return graph
 
+
+
 @monitor_performance
 async def run_query(question: str, session_id: str = None) -> NL2SQLState:
     """
@@ -202,16 +220,107 @@ async def run_query(question: str, session_id: str = None) -> NL2SQLState:
         "intent": None
     }
 
-    # Run graph
+    # Run graph with streaming
     print(f"Starting NL2SQL Graph")
-    #result = graph.invoke(initial_state)
-    # 执行图并使用 "updates" 模式流式输出
-    async for update in graph.astream(initial_state, stream_mode="updates"):
-        for node_name, node_update in update.items():
-            print(f"节点 '{node_name}' 完成，说明: {node_update['show']}")
-            if node_name == "generate_answer":
-                print(node_update['answer'])
-    #return result
+    
+    final_state = None
+    current_node = None
+    
+    # Use astream_events for both node progress and token streaming
+    async for event in graph.astream_events(initial_state, version="v2"):
+        kind = event["event"]
+        name = event.get("name", "")
+        
+        # Track which node we're currently in
+        if kind == "on_chain_start" and name in ["parse_intent", "select_tables", "generate_sql", "validate_sql", "sandbox_check", "execute_sql", "generate_answer"]:
+            current_node = name
+        
+        # Handle node completion events
+        if kind == "on_chain_end":
+            if name in ["parse_intent", "select_tables", "generate_sql", "validate_sql", "sandbox_check", "execute_sql", "generate_answer"]:
+                # Get the node's output from state updates
+                node_output = event["data"].get("output", {})
+                if isinstance(node_output, dict) and "show" in node_output:
+                    print(f"\n节点 '{name}' 完成，说明: {node_output['show']}")
+                # Track final state
+                if name == "generate_answer":
+                    final_state = node_output
+                current_node = None
+        
+        # Handle LLM token streaming (only from generate_answer node)
+        elif kind == "on_chat_model_stream" and current_node == "generate_answer":
+            chunk = event["data"]["chunk"]
+            token = chunk.content
+            if token:
+                print(token, end="", flush=True)
+    
+    return final_state
+
+
+async def stream_query(question: str, session_id: str = None) -> AsyncGenerator[str, None]:
+    """
+    Stream query results via SSE (Server-Sent Events).
+    
+    Yields SSE-formatted events:
+    - node_start: {"node": "parse_intent", "label": "解析意图"}
+    - node_progress: {"node": "parse_intent", "label": "解析意图", "show": "识别结果..."}
+    - token: {"content": "你"}
+    - done: {}
+    """
+    if session_id is None:
+        session_id = str(uuid.uuid4())
+
+    graph = build_graph()
+
+    initial_state = {
+        "question": question,
+        "session_id": session_id,
+        "timestamp": None,
+        "intent": None
+    }
+
+    current_node = None
+    
+    async for event in graph.astream_events(initial_state, version="v2"):
+        kind = event["event"]
+        name = event.get("name", "")
+        
+        # Track which node we're currently in
+        if kind == "on_chain_start" and name in NODE_NAMES:
+            current_node = name
+            yield format_sse("node_start", {
+                "node": name,
+                "label": NODE_LABELS.get(name, name)
+            })
+        
+        # Handle node completion events
+        elif kind == "on_chain_end" and name in NODE_NAMES:
+            node_output = event["data"].get("output", {})
+            show_text = ""
+            if isinstance(node_output, dict):
+                show_text = node_output.get("show", "")
+            
+            yield format_sse("node_progress", {
+                "node": name,
+                "label": NODE_LABELS.get(name, name),
+                "show": show_text
+            })
+            current_node = None
+        
+        # Handle LLM token streaming (only from generate_answer node)
+        elif kind == "on_chat_model_stream" and current_node == "generate_answer":
+            chunk = event["data"]["chunk"]
+            token = chunk.content
+            if token:
+                yield format_sse("token", {"content": token})
+    
+    # Send done event
+    yield format_sse("done", {})
+
+
+def format_sse(event_type: str, data: Dict[str, Any]) -> str:
+    """Format data as SSE (Server-Sent Events) message."""
+    return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 

@@ -9,15 +9,18 @@ from datetime import datetime
 from typing import Dict, Any
 import json
 
+from langchain_core.messages import HumanMessage
+from pyexpat.errors import messages
+
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from tools.llm_client import llm_client
+from tools.llm_client import llm_client, LLMClient
 from tools.utils import load_prompt_template
 from graphs.state import NL2SQLState
 
-def generate_answer_node(state: NL2SQLState) -> NL2SQLState:
+async def generate_answer_node(state: NL2SQLState) -> NL2SQLState:
     """
     Generate a natural language answer based on query results.
     Uses if/else to select the appropriate prompt template for each scenario.
@@ -32,22 +35,23 @@ def generate_answer_node(state: NL2SQLState) -> NL2SQLState:
 
     show=f"根据问题生成最终答案, 执行标准："
 
-    # If already has answer (e.g., irrelevant question from parse_intent), return directly
-    if state.get("answer"):
-        return state
-
     # If irrelevant question, let LLM answer directly without template
     if intent and not intent.get("is_relevant", True):
         scenario = "irrelevant"
         show += "无关问题"
         try:
+            messages = []
             prompt = f"请友好地回答用户的问题（注意：这不是数据库查询请求，而是普通对话）：\n{question}"
-            response = llm_client.chat(prompt=prompt)
-            #print(f"\nGenerated Answer:\n{response}")
+
+            messages.append(HumanMessage(content=prompt))
+            llm = LLMClient(stream=True).client
+            response = await llm.ainvoke(messages)
+            full_response = response.content
+
             return {
                 **state,
-                "answer": response,
-                "show": show
+                "show": show,
+                "answer": full_response
             }
         except Exception as e:
             print(f"\n✗ Error generating answer: {e}")
@@ -123,13 +127,16 @@ def generate_answer_node(state: NL2SQLState) -> NL2SQLState:
 
     # Call LLM to generate answer
     try:
-        response = llm_client.chat(prompt=prompt)
-        #print(f"\nGenerated Answer:\n{response}")
+        messages = []
+        messages.append(HumanMessage(content=prompt))
+        llm = LLMClient(stream=True).client
+        response = await llm.ainvoke(messages)
+        full_response = response.content
 
         return {
             **state,
-            "answer": response,
-            "show": show
+            "show": show,
+            "answer": full_response
         }
 
     except Exception as e:
